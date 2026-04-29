@@ -83,6 +83,7 @@ int calculateMatch(University u, UserPreferences p) {
     print('   ✅ Tuition matched!');
   }
 
+
   final matchPercentage = ((score / total) * 100).round();
   print('   📊 Match Score: $score/$total = $matchPercentage%');
 
@@ -512,12 +513,14 @@ class _UniversitiesPageState extends State<UniversitiesP> {
                     Text(u.program, style: TextStyle(fontSize: 13, color: textSecondary)),
                   ],
                 ),
+
+                //rating
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.star, size: 14, color: Colors.amber),
                     const SizedBox(width: 4),
-                    Text(u.ranking, style: TextStyle(fontSize: 13, color: textSecondary)),
+                    Text( u.ranking, style: TextStyle(fontSize: 13, color: textSecondary)),
                   ],
                 ),
               ],

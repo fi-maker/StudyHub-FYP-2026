@@ -11,6 +11,7 @@ import '../../FeedBack/feedback.dart';
 import '../../Services/reccomendation system.dart';
 import '../../Services/reccomendation_system_scholarships.dart';
 import '4tabconsultant.dart';
+import 'Universityrating.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -139,6 +140,14 @@ class _HomePageState extends State<HomePage> {
                   ),
                 );
               }
+              else if (value == "rating") {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const RateUniversityPage(),
+                  ),
+                );
+              }
             },
             child: Container(
               margin: const EdgeInsets.only(right: 16),
@@ -170,6 +179,23 @@ class _HomePageState extends State<HomePage> {
                     SizedBox(width: 12),
                     Text(
                       "Your Feedback",
+                      style: TextStyle(
+                        color: textPrimary,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: "rating",
+                enabled: true,
+                child: Row(
+                  children: [
+                    Icon(Icons.star_border_outlined, size: 20, color: primaryTeal),
+                    SizedBox(width: 12),
+                    Text(
+                      "Rate Universities",
                       style: TextStyle(
                         color: textPrimary,
                         fontSize: 14,
