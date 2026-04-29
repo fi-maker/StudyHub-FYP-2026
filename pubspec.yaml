@@ -1,0 +1,71 @@
+name: studyhub_032_031
+description: "A new Flutter project."
+
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+#all dependencies related to project
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.6.0
+  #7. for the chatbot
+  google_generative_ai: ^0.4.7
+
+
+  cupertino_icons: ^1.0.8
+  #1. for splash screen
+  flutter_native_splash: ^2.4.7
+  #3. for firebase and supabase conection
+  firebase_core: ^4.2.1
+  #4. for authentication
+  firebase_auth: ^6.1.2
+  #5. for firestore
+  cloud_firestore: ^6.1.0
+  intl: ^0.20.2
+ #6. image uploading
+  image_picker: ^1.2.1
+  path_provider: ^2.1.5
+  path: ^1.9.1
+  supabase_flutter: ^2.12.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+
+  flutter_lints: ^5.0.0
+  #2. for launcher icon
+  flutter_launcher_icons: ^0.14.4
+
+
+# native splash screen
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/STUDYHUB (3).png
+  android: true
+  ios: true
+
+# launcher icon (Ensure 2 spaces of indentation per level)
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/launchericon.png"
+
+
+
+
+flutter:
+  uses-material-design: true
+
+  # asset images
+  assets:
+    - assets/STUDYHUB (3).png
+    - assets/launchericon.png
+    - assets/img.png
+
+
+
