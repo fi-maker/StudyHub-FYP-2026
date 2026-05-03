@@ -3,9 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
-
-// REMOVED: path_provider and path imports - they were causing issues
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CompleteStudentRegistrationFormScholarship extends StatefulWidget {
   const CompleteStudentRegistrationFormScholarship({super.key});
@@ -18,6 +16,9 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
   final _formKey = GlobalKey<FormState>();
   int _currentStep = 0;
 
+  // Supabase client
+  final _supabase = Supabase.instance.client;
+
   static const Color primaryTeal = Colors.teal;
   static const Color lightTeal = Color(0xFF20B2AA);
   static const Color smokeWhite = Color(0xFFF5F5F5);
@@ -26,8 +27,11 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
   static const Color textSecondary = Color(0xFF6B7B8A);
   static const Color borderColor = Color(0xFFE0E0E0);
 
-  // Store images as bytes (simpler, no file paths needed)
+  // Store images as bytes
   Uint8List? _profileImage, _matricCertificate, _interCertificate, _degreeCertificate;
+
+  // Store uploaded URLs from Supabase
+  String? _profileImageUrl, _matricCertificateUrl, _interCertificateUrl, _degreeCertificateUrl;
 
   // Personal Info Controllers
   final TextEditingController _firstNameController = TextEditingController();
@@ -161,7 +165,6 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
       if (_personalPhoneController.text.trim().isEmpty) { _showError('Phone number is required'); return false; }
     } else if (_currentStep == 1) {
       if (_legalFirstNameController.text.trim().isEmpty) { _showError('Legal First Name is required'); return false; }
-
       if (_strengthWeaknessController.text.trim().length < 100) { _showError('Please write at least 100 characters'); return false; }
     } else if (_currentStep == 2) {
       if (_emailController.text.trim().isEmpty) { _showError('Email Address is required'); return false; }
@@ -185,7 +188,42 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
     ));
   }
 
-  // SIMPLE IMAGE PICKER - Works every time!
+  // Upload image to Supabase Storage
+  Future<String?> _uploadImageToSupabase(Uint8List imageBytes, String documentType) async {
+    try {
+      // Get user from Firebase
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null) {
+        _showError('Please login first');
+        return null;
+      }
+
+      // Use Firebase user ID for folder structure
+      final userId = firebaseUser.uid;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filePath = 'scholarship/$userId/$documentType/$timestamp.jpg';
+
+      debugPrint('Uploading to: $filePath');
+      debugPrint('Image size: ${imageBytes.length} bytes');
+
+      // Upload to Supabase
+      await _supabase.storage
+          .from('student_documents')
+          .uploadBinary(filePath, imageBytes);
+
+      // Get public URL
+      final publicUrl = _supabase.storage.from('student_documents').getPublicUrl(filePath);
+      debugPrint('Upload success! URL: $publicUrl');
+
+      return publicUrl;
+    } catch (e) {
+      debugPrint('Upload error: $e');
+      _showError('Failed to upload image: $e');
+      return null;
+    }
+  }
+
+  // Image picker with Supabase upload
   Future<void> _pickImage(ImageSource source, String type) async {
     try {
       final ImagePicker picker = ImagePicker();
@@ -194,33 +232,65 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
       if (image != null) {
         final bytes = await image.readAsBytes();
 
-        setState(() {
-          switch (type) {
-            case 'profile':
-              _profileImage = bytes;
-              break;
-            case 'matric':
-              _matricCertificate = bytes;
-              break;
-            case 'inter':
-              _interCertificate = bytes;
-              break;
-            case 'degree':
-              _degreeCertificate = bytes;
-              break;
-          }
-        });
+        // Show uploading indicator
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Uploading image...'), backgroundColor: Colors.orange)
+        );
 
-      /*  ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$label uploaded!'), backgroundColor: Colors.green)
-        );*/
+        // Upload to Supabase
+        String? uploadedUrl;
+        switch (type) {
+          case 'profile':
+            uploadedUrl = await _uploadImageToSupabase(bytes, 'profile');
+            if (uploadedUrl != null) {
+              setState(() {
+                _profileImage = bytes;
+                _profileImageUrl = uploadedUrl;
+              });
+            }
+            break;
+          case 'matric':
+            uploadedUrl = await _uploadImageToSupabase(bytes, 'matric_certificate');
+            if (uploadedUrl != null) {
+              setState(() {
+                _matricCertificate = bytes;
+                _matricCertificateUrl = uploadedUrl;
+              });
+            }
+            break;
+          case 'inter':
+            uploadedUrl = await _uploadImageToSupabase(bytes, 'inter_certificate');
+            if (uploadedUrl != null) {
+              setState(() {
+                _interCertificate = bytes;
+                _interCertificateUrl = uploadedUrl;
+              });
+            }
+            break;
+          case 'degree':
+            uploadedUrl = await _uploadImageToSupabase(bytes, 'degree_certificate');
+            if (uploadedUrl != null) {
+              setState(() {
+                _degreeCertificate = bytes;
+                _degreeCertificateUrl = uploadedUrl;
+              });
+            }
+            break;
+        }
+
+        if (uploadedUrl != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Image uploaded successfully!'), backgroundColor: Colors.green)
+          );
+        }
       }
     } catch (e) {
-      debugPrint("Error: $e");
-      _showError('Failed to pick image: $e');
+      debugPrint("Image pick error: $e");
+      _showError('Failed to pick/upload image');
     }
   }
 
+  // Photo upload section widget
   Widget _buildPhotoUploadSection(String label, Uint8List? image, String type) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -270,12 +340,12 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
                   child: Image.memory(image, fit: BoxFit.cover)
               )
                   : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.camera_alt, color: textSecondary),
-                    const SizedBox(height: 4),
-                    Text('Upload', style: TextStyle(fontSize: 10, color: textSecondary))
-                  ]
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.camera_alt, color: textSecondary),
+                  const SizedBox(height: 4),
+                  Text('Upload', style: TextStyle(fontSize: 10, color: textSecondary))
+                ],
               )
           ),
         ),
@@ -343,8 +413,11 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
         const SizedBox(height: 4),
         const Text('Please provide your personal details', style: TextStyle(fontSize: 12, color: textSecondary)),
         const SizedBox(height: 16),
+
+        // Photo upload section
         _buildPhotoUploadSection('Passport Size Photo', _profileImage, 'profile'),
         const SizedBox(height: 14),
+
         Row(children: [
           Expanded(child: _buildField('First Name*', _firstNameController, required: true)),
           const SizedBox(width: 8),
@@ -460,6 +533,7 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
         const SizedBox(height: 4),
         const Text('Your educational background', style: TextStyle(fontSize: 12, color: textSecondary)),
         const SizedBox(height: 16),
+
         const Text('Matric / O-Levels', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
         const SizedBox(height: 8),
         _buildField('School*', _matricSchoolController, required: true),
@@ -469,6 +543,7 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
         _buildField('Marks/Percentage*', _matricMarksController, required: true),
         const SizedBox(height: 12),
         _buildPhotoUploadSection('Matric Certificate', _matricCertificate, 'matric'),
+
         const SizedBox(height: 16),
         const Text('Intermediate / A-Levels', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
         const SizedBox(height: 8),
@@ -479,6 +554,7 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
         _buildField('Marks/Percentage*', _interMarksController, required: true),
         const SizedBox(height: 12),
         _buildPhotoUploadSection('Intermediate Certificate', _interCertificate, 'inter'),
+
         const SizedBox(height: 16),
         const Text("Bachelor's Degree (give detail if not simply write nill)", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
         const SizedBox(height: 8),
@@ -489,6 +565,7 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
         _buildField('CGPA/Percentage*', _degreeMarksController, required: true),
         const SizedBox(height: 12),
         _buildPhotoUploadSection('Degree Certificate', _degreeCertificate, 'degree'),
+
         const SizedBox(height: 16),
         Row(children: [
           Expanded(child: _buildDropdown('Preferred University', _selectedsubject, subjectOptions, (v) => setState(() => _selectedsubject = v!))),
@@ -658,6 +735,11 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
         'preferredUniversity': _selectedsubject,
         'preferredLevel': _selectedProgramLevel,
         'preferredCourse': _selectedCourse,
+        // Add Supabase image URLs
+        'profileImageUrl': _profileImageUrl,
+        'matricCertificateUrl': _matricCertificateUrl,
+        'interCertificateUrl': _interCertificateUrl,
+        'degreeCertificateUrl': _degreeCertificateUrl,
         'status': 'Pending',
         'createdAt': FieldValue.serverTimestamp(),
       });
