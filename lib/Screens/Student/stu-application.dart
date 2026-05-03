@@ -516,7 +516,7 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: smokeWhite,
-      appBar: AppBar(title: Row(children: [Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: pureWhite.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.person_add, color: Colors.white, size: 18)), const SizedBox(width: 8), const Text('Student Registration', style: TextStyle(fontSize: 16,color: Colors.white, fontWeight: FontWeight.w600))]), backgroundColor: primaryTeal, elevation: 0),
+      appBar: AppBar(title: Row(children: [Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: pureWhite.withOpacity(0.2), borderRadius: BorderRadius.circular(8))), const SizedBox(width: 8), const Text('Student Registration', style: TextStyle(fontSize: 16,color: Colors.white, fontWeight: FontWeight.w600))]), backgroundColor: primaryTeal, elevation: 0),
       body: Form(key: _formKey, child: Column(children: [const SizedBox(height: 12), _buildProgressIndicator(), Expanded(child: IndexedStack(index: _currentStep, children: [_buildPersonalInfo(), _buildFamilyDetails(), _buildContactInfo(), _buildAcademicInfo()]))])),
       bottomNavigationBar: _buildNavigationButtons(),
     );

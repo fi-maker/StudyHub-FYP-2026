@@ -641,9 +641,9 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))
                   ),
                   child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(Icons.arrow_back, size: 14),
+                    Icon(Icons.arrow_back, size: 14, color: Colors.white), // CHANGED: Added color: Colors.white
                     SizedBox(width: 4),
-                    Text('Back', style: TextStyle(fontSize: 12))
+                    Text('Back', style: TextStyle(fontSize: 12, color: Colors.white)) // CHANGED: Added color: Colors.white
                   ])
               )
           )
@@ -782,7 +782,7 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
       backgroundColor: smokeWhite,
       appBar: AppBar(
           title: Row(children: [
-            Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: pureWhite.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.school, color: Colors.white, size: 18)),
+            Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: pureWhite.withOpacity(0.2), borderRadius: BorderRadius.circular(8))),
             const SizedBox(width: 8),
             const Text('Scholarship Application', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600))
           ]),

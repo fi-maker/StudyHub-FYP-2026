@@ -27,7 +27,7 @@ class ApplicationHistory01 extends StatelessWidget {
       appBar: AppBar(
         title: Row(children: [
           Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: pureWhite.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-              child: const Icon(Icons.history, color: Colors.white, size: 18)),
+              ),
           const SizedBox(width: 8), const Text("Application For", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
         ]),
         backgroundColor: primaryTeal,
