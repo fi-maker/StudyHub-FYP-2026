@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import "package:studyhub_032_031/Screens/Student/tab1home.dart";
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'home.dart';
 import 'dart:io';
 
@@ -18,6 +19,9 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
   final _formKey = GlobalKey<FormState>();
   int _currentStep = 0;
 
+  // Supabase client
+  final _supabase = Supabase.instance.client;
+
   static const Color primaryTeal = Colors.teal;
   static const Color lightTeal = Color(0xFF20B2AA);
   static const Color smokeWhite = Color(0xFFF5F5F5);
@@ -28,6 +32,9 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
 
   // Store images as bytes only - no file paths
   Uint8List? _profileImage, _matricCertificate, _interCertificate, _degreeCertificate;
+
+  // Store uploaded URLs
+  String? _profileImageUrl, _matricCertificateUrl, _interCertificateUrl, _degreeCertificateUrl;
 
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _middleNameController = TextEditingController();
@@ -175,25 +182,100 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)));
   }
 
-  // SIMPLIFIED IMAGE PICKER - no local file saving, just display
+  // Upload image to Supabase Storage
+  Future<String?> _uploadImageToSupabase(Uint8List imageBytes, String documentType) async {
+    try {
+      // Get user from Firebase (not Supabase)
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null) {
+        _showError('Please login first');
+        return null;
+      }
+
+      // Use the Firebase user ID
+      final userId = firebaseUser.uid;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filePath = '$userId/$documentType/$timestamp.jpg';
+
+      // Upload to Supabase (this will work now!)
+      await Supabase.instance.client.storage
+          .from('student_documents')
+          .uploadBinary(filePath, imageBytes);
+
+      // Get the picture URL
+      final publicUrl = Supabase.instance.client.storage
+          .from('student_documents')
+          .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (e) {
+      print('Error: $e');
+      _showError('Failed to upload');
+      return null;
+    }
+  }
+  // Modified image picker with Supabase upload
   Future<void> _pickImage(ImageSource source, String type) async {
     try {
       final XFile? image = await ImagePicker().pickImage(source: source);
       if (image != null) {
         final bytes = await image.readAsBytes();
-        setState(() {
-          switch (type) {
-            case 'profile': _profileImage = bytes; break;
-            case 'matric': _matricCertificate = bytes; break;
-            case 'inter': _interCertificate = bytes; break;
-            case 'degree': _degreeCertificate = bytes; break;
-          }
-        });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Image uploaded successfully'), backgroundColor: Colors.green));
+
+        // Show uploading indicator
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Uploading image...'), backgroundColor: Colors.orange)
+        );
+
+        // Upload to Supabase
+        String? uploadedUrl;
+        switch (type) {
+          case 'profile':
+            uploadedUrl = await _uploadImageToSupabase(bytes, 'profile');
+            if (uploadedUrl != null) {
+              setState(() {
+                _profileImage = bytes;
+                _profileImageUrl = uploadedUrl;
+              });
+            }
+            break;
+          case 'matric':
+            uploadedUrl = await _uploadImageToSupabase(bytes, 'matric_certificate');
+            if (uploadedUrl != null) {
+              setState(() {
+                _matricCertificate = bytes;
+                _matricCertificateUrl = uploadedUrl;
+              });
+            }
+            break;
+          case 'inter':
+            uploadedUrl = await _uploadImageToSupabase(bytes, 'inter_certificate');
+            if (uploadedUrl != null) {
+              setState(() {
+                _interCertificate = bytes;
+                _interCertificateUrl = uploadedUrl;
+              });
+            }
+            break;
+          case 'degree':
+            uploadedUrl = await _uploadImageToSupabase(bytes, 'degree_certificate');
+            if (uploadedUrl != null) {
+              setState(() {
+                _degreeCertificate = bytes;
+                _degreeCertificateUrl = uploadedUrl;
+              });
+            }
+            break;
+        }
+
+        if (uploadedUrl != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Image uploaded successfully!'), backgroundColor: Colors.green)
+          );
+        }
       }
     } catch (e) {
       debugPrint("Image pick error: $e");
-      _showError('Failed to pick image');
+      _showError('Failed to pick/upload image');
     }
   }
 
@@ -392,6 +474,11 @@ class _CompleteStudentRegistrationFormState extends State<CompleteStudentRegistr
         'interset university subject': _selectedsubject,
         'interested level': _selectedProgramLevel,
         'Course intersted': _selectedcourse,
+        // Add Supabase image URLs to Firestore
+        'profileImageUrl': _profileImageUrl,
+        'matricCertificateUrl': _matricCertificateUrl,
+        'interCertificateUrl': _interCertificateUrl,
+        'degreeCertificateUrl': _degreeCertificateUrl,
         'status': 'Pending',
         'createdAt': FieldValue.serverTimestamp(),
       }).then((_) async {
